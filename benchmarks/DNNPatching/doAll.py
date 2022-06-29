@@ -1,0 +1,476 @@
+import os
+import time, datetime
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from Pipeline.options import args
+import random
+
+import torch
+import torch.nn.parallel
+import torch.backends.cudnn as cudnn
+import sys
+from shutil import copyfile
+#import torch.backend.cudnn as cudnn
+import numpy as np
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+print('seed: ', args.seed)
+random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed_all(args.seed)
+np.random.seed(args.seed)
+
+# TODO: Add a log file.
+save_dir = args.output_dir
+if not os.path.isdir(save_dir):
+    os.mkdir(save_dir)
+if not os.path.isdir(save_dir+'files/'):
+    os.mkdir(save_dir+'files/')
+
+copyfile('./doAll.py', save_dir+'files/doAll.py')
+copyfile('./Pipeline/options.py', save_dir+'files/options.py')
+copyfile('./Architecture/double_patch_model.py', save_dir+'files/model.py')
+copyfile('./DataLoaders/data.py', save_dir+'files/data.py')
+copyfile('./Pipeline/run_double_patch.py', save_dir+'files/run.py')
+
+from Pipeline.run_double_patch import train, validate, save_signals, train_oa, validate_oa, save_signals_oa
+
+if args.task == 'lf':
+    lossTr = torch.zeros(args.epochs, 1)
+    errTr_str = torch.zeros(args.epochs, 1)
+    lossVa_lf_town03 = torch.zeros(args.epochs, 1)     
+    errVa_str_lf_town03 = torch.zeros(args.epochs, 1)
+    if args.validate:
+        lossVa = torch.zeros(args.epochs, 1)
+        errVa = torch.zeros(args.epochs, 1)
+
+elif args.task == 'lc':
+    lossTr = torch.zeros(args.epochs, 1)
+    lossVa_lf_town03 = torch.zeros(args.epochs, 1)
+    lossVa_lc_town03 = torch.zeros(args.epochs, 1)
+    errTr_str = torch.zeros(args.epochs, 1)
+    errVa_str_lf_town03 = torch.zeros(args.epochs, 1)
+    errVa_str_lc_town03 = torch.zeros(args.epochs, 1)
+    if args.validate:
+        lossVa = torch.zeros(args.epochs, 1)
+        errVa = torch.zeros(args.epochs, 1)
+
+elif args.task == 'oa':
+    lossTr = torch.zeros(args.epochs, 1)
+    lossVa_lf_town03 = torch.zeros(args.epochs, 1)
+    lossVa_oa_town03 = torch.zeros(args.epochs, 1)
+    errTr_str = torch.zeros(args.epochs, 1)
+    errTr_obj_detection = torch.zeros(args.epochs, 1)
+    errTr_left_avoidance = torch.zeros(args.epochs, 1)
+    errTr_right_avoidance = torch.zeros(args.epochs, 1)
+    errVa_str_lf_town03 = torch.zeros(args.epochs, 1)
+    errVa_obj_detection_lf_town03 = torch.zeros(args.epochs, 1)
+    errVa_left_avoidance_lf_town03 = torch.zeros(args.epochs, 1)
+    errVa_right_avoidance_lf_town03 = torch.zeros(args.epochs, 1)
+    errVa_str_oa_town03 = torch.zeros(args.epochs, 1)
+    errVa_obj_detection_oa_town03 = torch.zeros(args.epochs, 1)
+    errVa_left_avoidance_oa_town03 = torch.zeros(args.epochs, 1)
+    errVa_right_avoidance_oa_town03 = torch.zeros(args.epochs, 1)
+    if args.validate:
+        lossVa = torch.zeros(args.epochs, 1)
+        errVa_str = torch.zeros(args.epochs, 1)
+        errVa_obj_detection = torch.zeros(args.epochs, 1)
+        errVa_left_avoidance = torch.zeros(args.epochs, 1)
+        errVa_right_avoidance = torch.zeros(args.epochs, 1)
+
+for epoch in range(1, args.epochs + 1):
+    print('Epoch: '+str(epoch)+'/'+str(args.epochs))
+    start_time = datetime.datetime.now().replace(microsecond=0)
+    if args.task == 'lf' or args.task == 'lc':
+        tr_loss, tr_err = train(epoch, save_dir)
+    elif args.task == 'oa':
+        tr_loss, tr_err, tr_err_obj_detection, tr_err_left_avoidance, tr_err_right_avoidance = train_oa(epoch, save_dir)
+
+    current_time = datetime.datetime.now().replace(microsecond=0)
+    timeTr = current_time - start_time
+
+    if args.task == 'lf':
+        valid_loss, valid_err = validate(epoch, save_dir, 'lf')
+    elif args.task == 'lc':
+        valid_loss_lf_town03, valid_err_lf_town03 = validate(epoch, save_dir, 'lf')
+        valid_loss_lc_town03, valid_err_lc_town03 = validate(epoch, save_dir, 'lc')
+    elif args.task == 'oa':
+        va_loss_lf_town03, va_err_lf_town03, va_err_obj_detection_lf_town03, va_err_left_avoidance_lf_town03, va_err_right_avoidance_lf_town03 = validate_oa(epoch, save_dir, 'lf')
+        va_loss_oa_town03, va_err_oa_town03, va_err_obj_detection_oa_town03, va_err_left_avoidance_oa_town03, va_err_right_avoidance_oa_town03 = validate_oa(epoch, save_dir, 'oa')
+        if args.validate:
+            va_loss, va_err, va_err_obj_detection, va_err_left_avoidance, va_err_right_avoidance = validate_oa(epoch, save_dir, 'training-subset')
+
+    print('Training loss:     %.5f'%tr_loss)
+    print('Training error:     %.5f'%tr_err)
+    print('Time:              '+str(timeTr))
+
+
+    if args.task == 'lf':
+        lossTr.select(0, epoch-1).copy_(tr_loss)
+        errTr_str.select(0, epoch-1).fill_(tr_err)
+        lossVa_lf_town03.select(0, epoch-1).copy_(valid_loss)
+        errVa_str_lf_town03.select(0, epoch-1).fill_(valid_err)
+
+        np.save(save_dir+'lossTr.npy', lossTr.numpy())
+        np.save(save_dir+'errTr_str.npy', errTr_str.numpy())
+        np.save(save_dir+'lossVa_lf_town03.npy', lossVa_lf_town03.numpy())
+        np.save(save_dir+'errVa_str_lf_town03.npy', errVa_str_lf_town03.numpy())
+
+        plt.figure()
+        plt.plot(lossTr.numpy(), label='Tr loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_loss_curve.png')
+        plt.close()
+ 
+        plt.figure()
+        plt.plot(lossVa_lf_town03.numpy(), label='Va lf town03 loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_str.numpy(), label='Tr Err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_str_lf_town03.numpy(), label='Va lf town03 err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_str_error_curve.png')
+        plt.close()
+
+        if epoch % 10 == 0:
+            save_signals(epoch, 'lf')
+
+    elif args.task == 'lc':
+        lossTr.select(0, epoch-1).copy_(tr_loss)
+        lossVa_lf_town03.select(0, epoch-1).copy_(valid_loss_lf_town03)
+        lossVa_lc_town03.select(0, epoch-1).copy_(valid_loss_lc_town03)
+        errTr_str.select(0, epoch-1).fill_(tr_err)
+        errVa_str_lf_town03.select(0, epoch-1).fill_(valid_err_lf_town03)
+        errVa_str_lc_town03.select(0, epoch-1).fill_(valid_err_lc_town03)
+
+        np.save(save_dir+'trLoss.npy', lossTr.numpy())
+        np.save(save_dir+'errTr_str.npy', errTr_str.numpy())
+        np.save(save_dir+'lossVa_lf_town03.npy', lossVa_lf_town03.numpy())
+        np.save(save_dir+'errVa_str_lf_town03.npy', errVa_str_lf_town03.numpy())
+        np.save(save_dir+'lossVa_lc_town03.npy', lossVa_lc_town03.numpy())
+        np.save(save_dir+'errVa_str_lc_town03.npy', errVa_str_lc_town03.numpy())
+
+        plt.figure()
+        plt.plot(lossTr.numpy(), label='Tr loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(lossVa_lf_town03.numpy(), label='Va lf town03 loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_str.numpy(), label='Tr Err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_str_lf_town03.numpy(), label='Va lf town03 err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(lossVa_lc_town03.numpy(), label='Va lc town03 loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lc_town03_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_str_lc_town03.numpy(), label='Va lc town03 err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lc_town03_str_error_curve.png')
+        plt.close()
+
+        if epoch % 10 == 0:
+            save_signals(epoch, 'lf')
+            save_signals(epoch, 'lc')
+
+    elif args.task == 'oa':
+        lossTr.select(0, epoch-1).copy_(tr_loss)
+        lossVa_lf_town03.select(0, epoch-1).copy_(va_loss_lf_town03)
+        lossVa_oa_town03.select(0, epoch-1).copy_(va_loss_oa_town03)
+        errTr_str.select(0, epoch-1).fill_(tr_err)
+        errTr_obj_detection.select(0, epoch-1).fill_(tr_err_obj_detection)
+        errTr_left_avoidance.select(0, epoch-1).fill_(tr_err_left_avoidance)
+        errTr_right_avoidance.select(0, epoch-1).fill_(tr_err_right_avoidance)
+        errVa_str_lf_town03.select(0, epoch-1).fill_(va_err_lf_town03)
+        errVa_obj_detection_lf_town03.select(0, epoch-1).fill_(va_err_obj_detection_lf_town03)
+        errVa_left_avoidance_lf_town03.select(0, epoch-1).fill_(va_err_left_avoidance_lf_town03)
+        errVa_right_avoidance_lf_town03.select(0, epoch-1).fill_(va_err_right_avoidance_lf_town03)
+        errVa_str_oa_town03.select(0, epoch-1).fill_(va_err_oa_town03)
+        errVa_obj_detection_oa_town03.select(0, epoch-1).fill_(va_err_obj_detection_oa_town03)
+        errVa_left_avoidance_oa_town03.select(0, epoch-1).fill_(va_err_left_avoidance_oa_town03)
+        errVa_right_avoidance_oa_town03.select(0, epoch-1).fill_(va_err_right_avoidance_oa_town03)
+        if args.validate:
+            lossVa.select(0, epoch-1).copy_(va_loss)
+            errVa_str.select(0, epoch-1).fill_(va_err)
+            errVa_obj_detection.select(0, epoch-1).fill_(va_err_obj_detection)
+            errVa_left_avoidance.select(0, epoch-1).fill_(va_err_left_avoidance)
+            errVa_right_avoidance.select(0, epoch-1).fill_(va_err_right_avoidance)
+
+        np.save(save_dir+'lossTr.npy', lossTr.numpy())
+        np.save(save_dir+'lossVa_lf_town03.npy', lossVa_lf_town03.numpy())
+        np.save(save_dir+'lossVa_oa_town03.npy', lossVa_oa_town03.numpy())
+        np.save(save_dir+'errTr_str.npy', errTr_str.numpy())
+        np.save(save_dir+'errTr_obj_detection.npy', errTr_obj_detection.numpy())
+        np.save(save_dir+'errTr_left_avoidance.npy', errTr_left_avoidance.numpy())
+        np.save(save_dir+'errTr_right_avoidance.npy', errTr_right_avoidance.numpy())
+        np.save(save_dir+'errVa_str_lf_town03.npy', errVa_str_lf_town03.numpy())
+        np.save(save_dir+'errVa_obj_detection_lf_town03.npy', errVa_obj_detection_lf_town03.numpy())
+        np.save(save_dir+'errVa_left_avoidance_lf_town03.npy', errVa_left_avoidance_lf_town03.numpy())
+        np.save(save_dir+'errVa_right_avoidance_lf_town03.npy', errVa_right_avoidance_lf_town03.numpy())
+        np.save(save_dir+'errVa_str_oa_town03.npy', errVa_str_oa_town03.numpy())
+        np.save(save_dir+'errVa_obj_detection_oa_town03.npy', errVa_obj_detection_oa_town03.numpy())
+        np.save(save_dir+'errVa_left_avoidance_oa_town03.npy', errVa_left_avoidance_oa_town03.numpy())
+        np.save(save_dir+'errVa_right_avoidance_oa_town03.npy', errVa_right_avoidance_oa_town03.numpy())
+        if args.validate:
+            np.save(save_dir+'lossVa.npy', lossVa.numpy())
+            np.save(save_dir+'errVa_str.npy', errVa_str.numpy())
+            np.save(save_dir+'errVa_obj_detection.npy', errVa_obj_detection.numpy())
+            np.save(save_dir+'errVa_left_avoidance.npy', errVa_left_avoidance.numpy())
+            np.save(save_dir+'errVa_right_avoidance.npy', errVa_right_avoidance.numpy())
+
+        plt.figure()
+        plt.plot(lossTr.numpy(), label='Tr loss')
+        if args.validate:
+            plt.plot(lossVa.numpy(), label='Va loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(lossVa_lf_town03.numpy(), label='Va lf town03 loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(lossVa_oa_town03.numpy(), label='Va oa town03 loss')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('loss', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_oa_town03_loss_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_str.numpy(), label='Tr str err')
+        if args.validate:
+            plt.plot(errVa_str.numpy(), label='Va str err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_obj_detection.numpy(), label='Tr obj detection err')
+        if args.validate:
+            plt.plot(errVa_obj_detection.numpy(), label='Va obj detection err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_obj_detection_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_left_avoidance.numpy(), label='Tr left avoidance err')
+        if args.validate:
+            plt.plot(errVa_left_avoidance.numpy(), label='Va left avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22) 
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_left_avoidance_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errTr_right_avoidance.numpy(), label='Tr right avoidance err')
+        if args.validate:
+            plt.plot(errVa_right_avoidance.numpy(), label='Va right avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'tr_right_avoidance_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_str_lf_town03.numpy(), label='Va lf town03 str err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_obj_detection_lf_town03.numpy(), label='Va lf town03 obj detection err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_obj_detection_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_left_avoidance_lf_town03.numpy(), label='Va lf towno3 left avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_left_avoidance_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_right_avoidance_lf_town03.numpy(), label='Va lf town03 right avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_lf_town03_right_avoidance_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_str_oa_town03.numpy(), label='Va oa town03 str err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_oa_town03_str_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_obj_detection_oa_town03.numpy(), label='Va oa town03 obj detection err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_oa_town03_obj_detection_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_left_avoidance_oa_town03.numpy(), label='Va oa towno3 left avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_oa_town03_left_avoidance_error_curve.png')
+        plt.close()
+
+        plt.figure()
+        plt.plot(errVa_right_avoidance_oa_town03.numpy(), label='Va oa town03 right avoidance err')
+        plt.legend(loc='upper center', fontsize=22)
+        plt.xlabel('Epoch number', fontsize=22)
+        plt.ylabel('err', fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.tight_layout()
+        plt.savefig(save_dir+'va_oa_town03_right_avoidance_error_curve.png')
+        plt.close()        
+
+        if epoch % 10 == 1:
+            save_signals_oa(epoch, 'lf')
+            save_signals_oa(epoch, 'oa')
+            #save_signals_oa(epoch, 'training-subset')
