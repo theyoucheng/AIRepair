@@ -1,0 +1,7 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/home/e91868xs/AIRepair/benchmarks/DeepRepair/exp_7/cifar100/confusion/repair_confusion_dbr.py", line 671, in <module>
+    main()
+  File "/home/e91868xs/AIRepair/benchmarks/DeepRepair/exp_7/cifar100/confusion/repair_confusion_dbr.py", line 131, in main
+    assert os.path.isfile(args.pretrained)
+AssertionError

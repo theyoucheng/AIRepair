@@ -1,0 +1,15 @@
+nohup: ignoring input
+usage: repair_confusion_dbr_vggbn.py [-h] [--net_type NET_TYPE] [-j N]
+                                     [--epochs N] [-b N] [--lr LR]
+                                     [--momentum M] [--weight-decay W]
+                                     [--print-freq N] [--depth DEPTH]
+                                     [--no-bottleneck] [--dataset DATASET]
+                                     [--no-verbose] [--alpha ALPHA]
+                                     [--expname EXPNAME] [--beta BETA]
+                                     [--cutmix_prob CUTMIX_PROB]
+                                     [--pretrained PATH] [--expid EXPID]
+                                     [--checkmodel] [--lam LAM]
+                                     [--first FIRST] [--second SECOND]
+                                     [--extra EXTRA] [--keeplr]
+                                     [--forward FORWARD]
+repair_confusion_dbr_vggbn.py: error: unrecognized arguments: --replace --ratio 1.0

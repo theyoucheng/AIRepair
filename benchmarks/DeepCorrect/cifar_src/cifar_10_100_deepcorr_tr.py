@@ -15,12 +15,13 @@ from keras.datasets import cifar100
 
 import cifar_layer_arch as CIFAR
 import cifar_distortions as CIFAR_acc
+K.set_image_dim_ordering('th')
 
 #set distortion type
-dist_type ='blur'
+dist_type ='awgn'
 
 # set type of model : 'ft' for finetune or 'dc' for deepcorr
-model_type ='dc'
+model_type ='ft'
 
 # set number of layers corrected or finetuned : 1 < num_ly_corr <= 6
 num_ly_corr = 1
@@ -29,7 +30,7 @@ num_ly_corr = 1
 correction_perc = 0.5
 
 # Performs training followed by testing when num_epoch > 0, while num_epoch = 0 performs only testing
-num_epoch = 0
+num_epoch = 3
 
 
 momentum = 0.9

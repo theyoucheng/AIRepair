@@ -1,0 +1,4 @@
+
+ Iteration : 360 Learning rate : 0.10000000149 Validation acc top1  : 0.582428571429
+ Iteration : 720 Learning rate : 0.10000000149 Validation acc top1  : 0.590914285714
+ Iteration : 1080 Learning rate : 0.10000000149 Validation acc top1  : 0.597371428571

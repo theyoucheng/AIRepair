@@ -1,0 +1,7 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/home/e91868xs/AIRepair/benchmarks/DeepRepair/exp_7/cifar100/bias/repair_bias_exp_oversampling.py", line 706, in <module>
+    main()
+  File "/home/e91868xs/AIRepair/benchmarks/DeepRepair/exp_7/cifar100/bias/repair_bias_exp_oversampling.py", line 209, in main
+    assert os.path.isfile(args.pretrained)
+AssertionError
