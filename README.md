@@ -41,11 +41,11 @@ Firstly please train the baseline models.
 ```bash
 python train_baseline.py --net_type nettype --dataset dataset --saved_path path
 ```
-+nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST. For ResNet models, it will train ResNet18, ResNet34 and ResNet50.
++ nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST. For ResNet models, it will train ResNet18, ResNet34 and ResNet50.
 
-+dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
++ dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
 
-+saved_path The folder that you save the trained models, which will be used in repairing later.
++ saved_path The folder that you save the trained models, which will be used in repairing later.
 
 Example: 
 
@@ -60,15 +60,15 @@ python compare.py --net_type nettype --dataset dataset --pretrained path --log_p
 ```
 Currently the compare.py will compare the repair performance of dl2, deeprepair and apricot running on the same pretrained model. Later we will make it support more repairing tools and frameworks.
 
-+nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST.
++ nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST.
 
-+dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
++ dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
 
-+pretrained The folder where your pretrained model located, as well as the checkpoint files.
++ pretrained The folder where your pretrained model located, as well as the checkpoint files.
 
-+depth The number of the layers in your pretrained model, this parameter only works for ResNet models.
++ depth The number of the layers in your pretrained model, this parameter only works for ResNet models.
 
-+log_path The folder where you save the generated logs during repairing.
++ log_path The folder where you save the generated logs during repairing.
 
 Example:
 
