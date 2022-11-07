@@ -4,7 +4,9 @@ Neural Network Repairing Framework
 
 ## Overview
 
-This framework provides a platform for testing, selecting, and comparing neural network repair tools for pre-trained neural network models. Please check our paper for details: [research paper](link to the paper).
+This framework provides a platform for testing, selecting, and comparing neural network repair tools for pre-trained neural network models. Please check our paper for details: [research paper](link to the paper). The following diagram shows the architecture of our framework.
+
+![OSS-Fuzz process diagram](neural_network_repair.png)
 
 ## Installation
 
@@ -40,9 +42,13 @@ Firstly please train the baseline models.
 python train_baseline.py --net_type nettype --dataset dataset --saved_path path
 ```
 +nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST. For ResNet models, it will train ResNet18, ResNet34 and ResNet50.
+
 +dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
+
 +saved_path The folder that you save the trained models, which will be used in repairing later.
+
 Example: 
+
 ```bash
 python train_baseline.py resnet --dataset cifar10 --saved_path ./trained_models/resnet_cifar10
 ```
@@ -53,12 +59,19 @@ Then check the performance of the pretrained model, convert the models, and appl
 python compare.py --net_type nettype --dataset dataset --pretrained path --log_path path --depth depth
 ```
 Currently the compare.py will compare the repair performance of dl2, deeprepair and apricot running on a same pretrained model. Later we will make it support more repairing tools and frameworks.
+
 +nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST.
+
 +dataset The dataset used to train the model. Currently ACAS Xu, MNIST, F-MNIST, CIFAR-10 and CIFAR-100 are available.
+
 +pretrained The folder where your pretrained model located, as well as the checkpoint files.
+
 +depth The number of the layers in your pretrained model, this parameter only works for ResNet models.
+
 +log_path The folder where you save the generated logs during repairing.
+
 Example:
+
 ```bash
 python compare.py --net_type nettype --dataset cifar10 --pretrained ./trained_models/resnet_cifar10 --log_path ./logs/repair_resnet_cifar10 --depth 18
 ```
@@ -66,7 +79,9 @@ python compare.py --net_type nettype --dataset cifar10 --pretrained ./trained_mo
 You could also run the repairing manually, please check the instruction inside each tool's repo.
 
 Although evaluate model has been integrated into compare.py, you can also check the pretrained models and repaired models manually.
+
 Example:
+
 ```bash
 python check_evaluate_model.py  --net_type resnet --dataset cifar10 --batch_size 256 --workers 4 --lr 0.1 --depth 18 --pretrained ./CSimilarityT.pt --checkmodel
 ```
