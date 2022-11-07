@@ -58,7 +58,7 @@ Then check the performance of the pretrained model, convert the models, and appl
 ```bash
 python compare.py --net_type nettype --dataset dataset --pretrained path --log_path path --depth depth
 ```
-Currently the compare.py will compare the repair performance of dl2, deeprepair and apricot running on a same pretrained model. Later we will make it support more repairing tools and frameworks.
+Currently the compare.py will compare the repair performance of dl2, deeprepair and apricot running on the same pretrained model. Later we will make it support more repairing tools and frameworks.
 
 +nettype The structure and the neuron type in the model. You can choose: ResNet, MNIST and F-MNIST.
 
