@@ -15,7 +15,6 @@ from sklearn.decomposition import PCA
 sys.path.append('../../')
 import time
 import torch.onnx
-import onnx
 from torchvision.transforms import ToTensor
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -165,11 +164,6 @@ def main():
     if args.net_type == 'resnet':
         model = RN.ResNet(args.dataset, args.depth,
                           numberofclass, args.bottleneck)  # for ResNet
-    elif args.net_type == 'pyramidnet':
-        model = PYRM.PyramidNet(args.dataset, args.depth, args.alpha, numberofclass, args.bottleneck)
-    elif args.net_type == 'mobilenetv2':
-        from mobilenetv2 import MobileNetV2
-        model = MobileNetV2()
     elif args.net_type == 'mnist':
         model = MnistNet()
     elif args.net_type == 'fmnist':
