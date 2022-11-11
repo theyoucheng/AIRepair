@@ -8,7 +8,7 @@ import time
 from torchvision import datasets, transforms
 from oracles import DL2_Oracle
 from constraints import *
-from resnet import ResNet50
+from resnet import ResNet50, ResNet34, ResNet18
 from models import MLP, MnistNet
 from sklearn.decomposition import PCA
 import sys
@@ -119,7 +119,7 @@ def train(args, oracle, net, device, train_loader, optimizer, epoch, pca=None):
     avg_dl2_loss /= float(num_steps)
     avg_ce_loss /= float(num_steps)
     t = t2 - t1
-    torch.save(net, saved_model)
+    torch.save(net, args.saved_model)
     
     return avg_train_acc, avg_constr_acc, avg_dl2_loss, avg_ce_loss, t
 
@@ -186,6 +186,7 @@ parser.add_argument('--print-freq', type=int, default=10, help='Print frequency.
 parser.add_argument('--report-dir', type=str, required=True, help='Directory where results should be stored')
 parser.add_argument('--constraint', type=str, required=True, help='the constraint to train with: LipschitzT(L), LipschitzG(eps, L), RobustnessT(eps1, eps2), RobustnessG(eps, delta), CSimiliarityT(), CSimilarityG(), LineSegmentG()')
 parser.add_argument('--embed-dim', type=int, default=40, help='embed dim')
+parser.add_argument('--depth', type=int, default=50, help='the depth of resnet model, only works for cifar dataset')
 parser.add_argument('--network-output', type=str, choices=['logits', 'prob', 'logprob'], default='logits', help='Wether to treat the output of the network as logits, probabilities or log(probabilities) in the constraints.')
 args = parser.parse_args()
 
@@ -250,7 +251,13 @@ elif args.dataset == 'cifar10':
         pca = embed_pca(cifar_data, args.embed_dim)
         model = MLP(args.embed_dim, 10, 1000, 3).to(device)
     else:
-        model = ResNet50().to(device)
+        if args.depth == 50:
+            model = ResNet50().to(device)
+        elif args.depth == 34:
+            model = ResNet34().to(device)
+        elif args.depth == 18:
+            model = ResNet18().to(device)
+            
 
 optimizer = optim.Adam(model.parameters(), lr=0.0001)
 

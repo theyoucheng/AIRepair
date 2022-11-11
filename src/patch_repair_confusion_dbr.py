@@ -113,6 +113,7 @@ parser.add_argument('--weight', default=1, type=float,
                     help='oversampling weight')
 parser.add_argument('--target_weight', default=1, type=float,
                     help='weights assigned to the original loss and 1-target_weight is the weight assigned to mistakes on the confusion pair in the loss. It get used when smaller than 1.')
+args = parser.parse_args()
 
 
 
@@ -130,7 +131,7 @@ global_epoch_confusion = []
 
 def log_print(var):
     print("logging filter: " + str(var))
-if args.addition.contain("exp_newbn"):
+if "exp_newbn" in args.addition:
     glob_bn_total = 0
     glob_bn_count = 0
 
@@ -745,7 +746,7 @@ def get_confusion(val_loader, model, criterion, epoch=-1):
 
         output = model(input)
 
-        if args.addition.contain("exp_newbn_softmax"):
+        if "exp_newbn_softmax" in args.addition:
             eta = args.eta
             #chosen_ classes = torch.tensor([3, 5])
             #other_ classes = torch.tensor([0, 1, 2, 4, 6, 7, 8, 9])

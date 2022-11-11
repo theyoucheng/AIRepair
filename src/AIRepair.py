@@ -224,7 +224,7 @@ def check_model_dl2(dataset, net_type, resume_from):
     print("This model accuracy is: "+ ACC_1 + " CACC is: " + CACC + " Group Acc is:" + GroupACC)
     return ACC_1, CACC, GroupACC
 
-def check_model_deeprepair(filepath):
+def check_model_deeprepair(net_type, dataset,resume_from, log_name):
     #python check_evaluate_model.py  --net_type resnet --dataset cifar10 --batch_size 256 --workers 4 \
     # --lr 0.1 --depth 18 --pretrained ./CSimilarityT.pt --checkmodel
     cmd = "python evaluate_model_dl2.py --net_type" + net_type + " --dataset " + dataset + " --resume_from " + resume_from
@@ -234,7 +234,7 @@ def check_model_deeprepair(filepath):
     result = False
     N = 10
     try:
-        lines = LastNlines(fname, N)
+        lines = LastNlines(log_name, N)
         for line in lines:
             resultline = " "
             if "Epoch: [-1/60]" in line:
@@ -285,8 +285,8 @@ def convert_pth_to_pt(net_type, depth, dataset, input_path, outputpath):
 
     
 
-def repair_using_deeprepair(dataset, net_type, depth, expname, pre_trained, saved_path):
-    if dataset == 'cifar10':
+def repair_using_deeprepair(dataset, net_type, depth, expname, pre_trained, saved_path, additional_param):
+    if additional_param == "":
         os.chdir('.././benchmarks/DeepRepair/exp_7/cifar10')
         #nohup python3 repair_confusion_exp_newbn.py --net_type resnet --dataset cifar100 --depth 50 \
         # --batch_size 128 --lr 0.1 --expname cifar100_resnet50_2_4 --epochs 60 --beta 1.0 --cutmix_prob 0 \
@@ -298,18 +298,17 @@ def repair_using_deeprepair(dataset, net_type, depth, expname, pre_trained, save
         #python3 repair_bias_exp_weighted_loss_mnist_fmnist.py --net_type fmnist --dataset fmnist --depth 50 \
         # --batch_size 256 --lr 0.1 --expname fmnist --epochs 60 --beta 1.0 --cutmix_prob 0 --pretrained \
         # ../../../../dl2/training/supervised/RobustnessT_fmnist_baseline.pt --lam 0 --extra 256 > fmnist_bias_exp_weighted_loss.log 2>&1 &
-        cmd = "python3 repair_confusion_exp_newbn.py --net_type" + net_type + " --dataset " + dataset + \
+        cmd = "python3 patch_repair_confusion.py --net_type" + net_type + " --dataset " + dataset + \
             " --depth " + depth + "  --batch_size 128 --lr 0.1 --expname" + expname + "--epoch 60 --beta 1.0 --cutmix_prob 0 --pretrained " \
-                + pre_trained + " --lam 0 --extra 128 --replace --ratio 0.9"
-        
+                + pre_trained + " --lam 0 --extra 128 --replace --ratio 0.9"       
         with open("stdout_confusion_exp_newbn.txt","wb") as out, open("stderr_confusion_exp_newbn.txt","wb") as err:
             subprocess.Popen(cmd,stdout=out,stderr=err)
-    elif dataset == 'cifar100':
-        os.chdir('.././benchmarks/DeepRepair/exp_7/cifar100')
-        # python3 repair_retrain_exp.py --net_type resnet --dataset cifar10 --depth 50 --batch_size 256 --lr 0.1 --expname ResNet50 --epochs 30 --beta 1.0 --cutmix_prob 1.0 --pretrained ./runs/DeepInspect_1/model_best.pth.tar
-    elif dataset == 'mnist' or 'fmnist':
-        os.chdir('.././benchmarks/DeepRepair/exp_7/m_fmnist')
-
+    else:
+        cmd = "python3 patch_repair_confusion.py --net_type" + net_type + " --dataset " + dataset + \
+                " --depth " + depth + "  --batch_size 128 --lr 0.1 --expname" + expname + "--epoch 60 --beta 1.0 --cutmix_prob 0 --pretrained " \
+                    + pre_trained + additional_param       
+        with open("stdout_confusion_exp_newbn.txt","wb") as out, open("stderr_confusion_exp_newbn.txt","wb") as err:
+            subprocess.Popen(cmd,stdout=out,stderr=err)
 
     #repair_bias_exp_oversampling_mnist_fmnist.py --net_type mnist --dataset mnist --depth 50 --batch_size 256 \
     # --lr 0.1 --expname mnist --epochs 60 --beta 1.0 --cutmix_prob 0 --pretrained ../../../../dl2/training/supervised/RobustnessT_mnist_baseline.pt \

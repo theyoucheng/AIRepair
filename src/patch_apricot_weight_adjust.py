@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
 from torchvision.utils import save_image
-from model.data_loader import CIFARVT
 import resnet as RN
 import tqdm
 import time
@@ -20,20 +19,22 @@ if not os.path.exists(sample_dir):
 # Hyper-parameters
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-err_src', type=int, default=-1)
-parser.add_argument('-err_dst', type=int, default=-1)
+parser.add_argument('--err_src', type=int, default=-1)
+parser.add_argument('--err_dst', type=int, default=-1)
 parser.add_argument('--net_type', dest='nettype', default='resnet', type=str,
                     help='networktype: resnet, mnist, and fmnist')
-parser.add_argument('--datasets', dest='datasets', default='imagenet', type=str,
+parser.add_argument('--datasets', dest='datasets', default='cifar10', type=str,
                     help='datasets (options: cifar10, cifar100, mnist, fmnist')
 parser.add_argument(
-    '--pretrained', dest= 'pretrained', default='CIFAR10_classifier_CNN2_iDLM_full', type=str)
-parser.add_argument(
-'--ticker', dest= 'ticker', default='/set/your/model/path', type=str, metavar='PATH')
+    '--pretrained', dest= 'pretrained', default='CIFAR10_classifier', type=str)
+#parser.add_argument(
+#'--ticker', dest= 'ticker', default='/set/your/model/path', type=str, metavar='PATH')
 parser.add_argument('--depth', default=18, type=int,
-                    help='depth of the network (default: 18)')
+                    help='depth of the network (default: 18) only works for resnet')
 parser.add_argument(
-    '--trained', dest= 'trained', default='CIFAR10_classifier_CNN2_iDLM_full', type=str)
+    '--repaired', dest= 'repaired', default='./cifar10_resnet18_repaired.pt', type=str)
+parser.add_argument('--ticker', default='CIFAR10_classifier_ResNet_iDLM_full', type=str)
+#python patch_apricot_weight_adjust.py --err_src 3 --err_dst 5 --net_type resnet --datasets cifar10 --pretrained ./cifar10_resnet50_baseline.pt --depth 18 --repaired ./cifar_resnet18_repaired.pt
 args = parser.parse_args()
 
 img_size = 32
@@ -311,5 +312,5 @@ print(f'Total execution time: {e-s}')
     
 #setWeights(iDLM, best_weights)
 #torch.save(iDLM.state_dict(), f'weights/%s_fixed_tgt%d%d.pth' % (ticker, target_err_type[0], target_err_type[1]))
-torch.save(iDLM, args.trained)
+torch.save(iDLM, args.repaired)
 
