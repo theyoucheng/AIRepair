@@ -5,11 +5,10 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
 from torchvision.utils import save_image
-import resnet as RN
 import tqdm
 import time
 import argparse
-from resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+from resnet_apricot import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
 
 # create sample directory if not exists
 sample_dir = 'samples'

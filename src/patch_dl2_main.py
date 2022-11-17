@@ -15,7 +15,6 @@ import sys
 sys.path.append('../../')
 import dl2lib as dl2
 import time
-from vgg import VGG
 
 
 use_cuda = torch.cuda.is_available()

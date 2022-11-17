@@ -27,7 +27,7 @@ sys.path.append('../../')
 import dl2lib as dl2
 import random
 from resnet import ResNet50
-from vgg import VGG
+
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR-10 Training')
 parser = dl2.add_default_parser_args(parser)
@@ -42,6 +42,8 @@ parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
 parser.add_argument('--dataset', default='cifar100', type=str, help='dataset = [cifar10/cifar100]')
 parser.add_argument('--exp_name', default='', type=str, help='experiment name')
 parser.add_argument('--resume_from', type=str, default=None, help='resume from checkpoint')
+parser.add_argument(
+    '--pretrained', default='/set/your/model/path', type=str, metavar='PATH')
 parser.add_argument('--testOnly', action='store_true', help='Test mode with the saved model')
 parser.add_argument('--constraint', type=str, choices=['DL2', 'none'], default='none', help='constraint system to use')
 parser.add_argument('--constraint-weight', '--constraint_weight', type=float, default=0.6, help='weight for constraint loss')
@@ -160,9 +162,6 @@ def getNetwork(args):
     if args.net_type == 'resnet':
         net = ResNet50(100)
         file_name = 'resnet50'
-    elif args.net_type == 'vgg':
-        net = VGG('VGG16', 100)
-        file_name = 'vgg'
     else:
         assert False
     file_name += '_' + str(args.seed) + '_' + args.exp_name
@@ -172,15 +171,12 @@ def getNetwork(args):
 if (args.testOnly):
     testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
     print('\n[Test Phase] : Model setup')
-    assert os.path.isdir('checkpoint'), 'Error: No checkpoint directory found!'
     _, file_name = getNetwork(args)
-    checkpoint = torch.load('./checkpoint/' + args.resume_from + '.t7')
-    net = checkpoint['net']
-
-    if use_cuda:
-        net.cuda()
-        net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-        cudnn.benchmark = True
+    net = torch.load(args.pretrained)
+    # if use_cuda:
+    #     net.cuda()
+    #     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
+    #     cudnn.benchmark = True
 
     net.eval()
     test_loss = 0
@@ -235,12 +231,12 @@ if (args.testOnly):
 
 # Model
 print('\n[Phase 2] : Model setup')
-if args.resume_from is not None:
+if args.pretrained is not None:
     # Load checkpoint
     print('| Resuming from checkpoint...')
     assert os.path.isdir('checkpoint'), 'Error: No checkpoint directory found!'
     _, file_name = getNetwork(args)
-    checkpoint = torch.load('./checkpoint/' + args.resume_from + '.t7')
+    checkpoint = torch.load(args.pretrained)
     net = checkpoint['net']
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -346,9 +342,9 @@ def save(acc, e, net, best=False):
         os.mkdir('checkpoint')
     if best:
         e = int(100* math.floor(( float(epoch) / 100)) )
-        save_point = './checkpoint/' + file_name + '_' + str(e) + '_best' + '.t7'
+        save_point = './checkpoint/' + file_name + '_' + str(e) + '_best' + '.pth'
     else:
-        save_point = './checkpoint/' + file_name + '_' + str(e) + '_' + '.t7'
+        save_point = './checkpoint/' + file_name + '_' + str(e) + '_' + '.pth'
     torch.save(state, save_point)
     return net
     

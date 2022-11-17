@@ -21,7 +21,7 @@ import torchvision.models as models
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../common"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../common/CutMix-PyTorch"))
-import resnet as RN
+import resnet_deeprepair as RN
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 import numpy as np
@@ -113,6 +113,8 @@ parser.add_argument('--weight', default=1, type=float,
                     help='oversampling weight')
 parser.add_argument('--target_weight', default=1, type=float,
                     help='weights assigned to the original loss and 1-target_weight is the weight assigned to mistakes on the confusion pair in the loss. It get used when smaller than 1.')
+parser.add_argument('--checkmodel_mode', dest = 'checkmodel_mode', default=False, type=bool,
+                    help='choosing the checkmodel mode')
 args = parser.parse_args()
 
 
@@ -158,7 +160,7 @@ def replace_bn(module):
                 new_bn = dnnrepair_BatchNorm2d(child.num_features, child.weight, child.bias, child.running_mean, child.running_var, args.ratio, child.eps, child.momentum, child.affine, track_running_stats=True)
                 setattr(module, child_name, new_bn)
             else:
-                if args.addition.contain("newbn"):
+                if "newbn" in args.addition:
                     print('replaced: bn')
                 new_bn = dnnrepair_BatchNorm2d(child.num_features, child.weight, child.bias, child.running_mean, child.running_var, 1, child.eps, child.momentum, child.affine, track_running_stats=True)
                 setattr(module, child_name, new_bn)
@@ -379,7 +381,7 @@ def main():
         # dog->cat confusion
         log_print(str(args.second) + " -> " + str(args.first))
         log_print(global_epoch_confusion[-1]["confusion"][(args.second, args.first)])
-        if args.addition.contains("exp_newbn"):
+        if "exp_newbn" in args.addition:
             obj1_count = global_epoch_confusion[-1]["obj1_count"]
             obj2_count = global_epoch_confusion[-1]["obj2_count"]
 
@@ -575,7 +577,7 @@ def train(train_loader, target_train_loader, model, criterion, optimizer, epoch)
             #_, top1_output = output.max(1)
             #yhats = top1_output.cpu().data.numpy()
             # print(yhats[:5])
-            if args.addition.contain("exp_newbn_weighted_loss"):
+            if "exp_newbn_weighted_loss" in args.addition:
                 def get_target_loss(target, output, ind1, ind2):
                     inds_first_1 = torch.where(target == ind1)
                     inds_first_2 = torch.where(torch.argmax(output, dim=1) == ind2)

@@ -33,7 +33,11 @@ def train_baseline(tool, dataset, nettype, savepath, additional_param):
                 + "--constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
                     + savepath + "train_baseline_bydl2_" + dataset + "_" + nettype + ".pt"
             with open("stdout.txt","wb") as out, open("stderr.txt","wb") as err:
-                subprocess.Popen(cmd,stdout=out,stderr=err)
+                ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
+                while ex.poll() is None:
+                    line=ex.stdout.readline().decode("utf8")
+                    print(line)
+                status = ex.wait()
         else:
             cmd = "python main.py --batch-size 128 --num-epochs 200 --dl2-weight 0 --dataset " + dataset \
                 + "--constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
