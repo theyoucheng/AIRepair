@@ -1,6 +1,6 @@
 # Models
 
-This folder is used to store the pretrained models that need to be repaired.
+This folder is used to store the pretrained models that need to be repaired. The dataset will be automatically downloaded when required.
 
 ## Overview
 
