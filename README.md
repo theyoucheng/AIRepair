@@ -50,13 +50,13 @@ python train_baseline.py --net_type nettype --dataset dataset --saved_path path
 Example: 
 
 ```bash
-python train_baseline.py resnet --dataset cifar10 --saved_path ./trained_models/resnet_cifar10
+python train.py --tool deeprepair --net_type resnet --dataset cifar10 --depth 18
 ```
 
 Then check the performance of the pretrained model, convert the models, and apply repairing.
 
 ```bash
-python compare.py --net_type nettype --dataset dataset --pretrained path --log_path path --depth depth
+python AIRepair.py --net_type nettype --dataset dataset --pretrained path --log_path path --depth depth
 ```
 Currently the compare.py will compare the repair performance of dl2, deeprepair and apricot running on the same pretrained model. Later we will make it support more repairing tools and frameworks.
 
@@ -73,7 +73,7 @@ Currently the compare.py will compare the repair performance of dl2, deeprepair 
 Example:
 
 ```bash
-python compare.py --net_type nettype --dataset cifar10 --pretrained ./trained_models/resnet_cifar10 --log_path ./logs/repair_resnet_cifar10 --depth 18
+python AIRepair.py --net_type nettype --dataset cifar10 --pretrained ./trained_models/resnet_cifar10 --log_path ./logs/repair_resnet_cifar10 --depth 18
 ```
 
 You could also run the repairing manually, please check the instruction inside each tool's repo.
@@ -83,7 +83,7 @@ Although evaluate model has been integrated into compare.py, you can also check 
 Example:
 
 ```bash
-python check_evaluate_model.py  --net_type resnet --dataset cifar10 --batch_size 256 --workers 4 --lr 0.1 --depth 18 --pretrained ./CSimilarityT.pt --checkmodel
+python AIRepair.py  --net_type resnet --dataset cifar10 --batch_size 256 --workers 4 --lr 0.1 --depth 18 --pretrained ./CSimilarityT.pt --checkmodel
 ```
 
 
