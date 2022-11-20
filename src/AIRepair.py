@@ -192,7 +192,7 @@ def LastNlines(fname, N):
             finally:
                 lines = list(f)
             pos *= 2
-    print(lines)
+    #print(lines)
     return lines[-N:]
 
 def check_model_dl2(net_type, dataset, resume_from):
@@ -241,7 +241,7 @@ def check_model_deeprepair(net_type, dataset,resume_from, log_name):
     cmd = "python patch_repair_confusion_dbr.py --net_type " + net_type + " --dataset " + dataset + " --pretrained " + resume_from \
         +" --saved_model ./ --checkmodel"
     with open("checkmodel_deeprepair_stdout.txt","wb") as out, open("checkmodel_deeprepair_stderr.txt","wb") as err:
-        ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
+        ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stderr=subprocess.STDOUT,stdin = subprocess.PIPE)
         while ex.poll() is None:
             line=ex.stdout.readline().decode("utf8")
             print(line)
@@ -392,7 +392,7 @@ def repair_using_apricot(dataset, net_type, depth, pre_trained, saved_path):
             + dataset + "_" + net_type + "_" + str(depth)
     print(cmd)
     with open("stdout.txt","wb") as out, open("stderr.txt","wb") as err:
-        ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
+        ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stderr=subprocess.STDOUT,stdin = subprocess.PIPE)
         while ex.poll() is None:
             line=ex.stdout.readline().decode("utf8")
             print(line)
@@ -439,15 +439,15 @@ def retract_info_from_pretrained(pretrained):
     return dataset, nettype, depth
                   
 def main():
-    extractor = parallelTestModule.ParallelExtractor()
-    extractor.runInParallel(numProcesses=2, numThreads=4)
+    #extractor = parallelTestModule.ParallelExtractor()
+    #extractor.runInParallel(numProcesses=2, numThreads=4)
     if args.all == True:
         print("Now run benchmark using Apricot, DeepRepair and DL2")
         print("Firstly check the model")
         deeprepair_acc, deeprepair_con_acc = check_model_deeprepair(args.nettype, args.dataset, args.pretrained, "check_by_deeprepair.log")
-        dl2_acc, dl2_cacc, dl2_group_acc = check_model_dl2(args.dataset, args.nettype, args.pretrained)
+        #dl2_acc, dl2_cacc, dl2_group_acc = check_model_dl2(args.dataset, args.nettype, args.pretrained)
         print("check model using deeprepair")
-        print("The acc of the model is " + str(deeprepair_acc) + ", and the confusion_acc of the model is" + str(deeprepair_con_acc))
+        #print("The acc of the model is " + str(deeprepair_acc) + ", and the confusion_acc of the model is" + str(deeprepair_con_acc))
         #print("The acc of the model (check by dl2) is " + str(dl2_acc) + ", and the cacc is " + str(dl2_cacc) + "and the group_acc is " + str(dl2_group_acc))
         print("Then apply repair:")
         print("Firstly run apricot") 
