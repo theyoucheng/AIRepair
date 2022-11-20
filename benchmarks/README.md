@@ -26,3 +26,7 @@ The state-of-the-art open-sourced neural network repair tools are listed below. 
 |                                    | [DL2](https://github.com/eth-sri/dl2)                      | Accuracy, Constr. acc                            | Pytorch                              | CIFAR10 <br>  CIFAR100 <br>  MNIST, F-MNIST                                                 |
 |                                    | [self-correcting-networks](https://github.com/cmu-transparency/self-correcting-networks) | Accuracy                                         | tensorflow                           | ACAS\_Xu, <br>  Collision detection, <br>  CIFAR-100                                        |
 |                                    | [PRDNN](https://github.com/95616ARG/PRDNN)                   | Efficacy, Drawdown,  <br>  Generalization, Time | Pytorch, gurobi                      | ImageNet, ACAS\_Xu, MNIST                                                                   |
+## Method selection principles
+
+This graph shows the flowchart of choosing appropriate repair method of different pretrained models.
+
