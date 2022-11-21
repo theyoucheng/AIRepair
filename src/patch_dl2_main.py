@@ -1,4 +1,5 @@
 import argparse
+from multiprocessing import freeze_support
 import os
 import torch
 import numpy as np
@@ -172,7 +173,7 @@ def test(args, oracle, model, device, test_loader, pca=None):
 
 parser = argparse.ArgumentParser(description='Train NN with constraints.')
 parser = dl2.add_default_parser_args(parser)
-parser.add_argument('--saved_model', type = str, required=True, help = 'PATH to store the repaired models and the file name.' )
+parser.add_argument('--saved_model', type = str, help = 'PATH to store the repaired models and the file name.' )
 parser.add_argument('--batch-size', type=int, default=128, help='Number of samples in a batch.')
 parser.add_argument('--num-iters', type=int, default=50, help='Number of oracle iterations.')
 parser.add_argument('--num-epochs', type=int, default=300, help='Number of epochs to train for.')
@@ -182,83 +183,12 @@ parser.add_argument('--pretrained', action='store_true', help='Whether to use pr
 parser.add_argument('--embed', action='store_true', help='Whether to embed the points.')
 parser.add_argument('--delay', type=int, default=0, help='How many epochs to wait before training with constraints.')
 parser.add_argument('--print-freq', type=int, default=10, help='Print frequency.')
-parser.add_argument('--report-dir', type=str, required=True, help='Directory where results should be stored')
-parser.add_argument('--constraint', type=str, required=True, help='the constraint to train with: LipschitzT(L), LipschitzG(eps, L), RobustnessT(eps1, eps2), RobustnessG(eps, delta), CSimiliarityT(), CSimilarityG(), LineSegmentG()')
+parser.add_argument('--report-dir', type=str, help='Directory where results should be stored')
+parser.add_argument('--constraint', type=str, help='the constraint to train with: LipschitzT(L), LipschitzG(eps, L), RobustnessT(eps1, eps2), RobustnessG(eps, delta), CSimiliarityT(), CSimilarityG(), LineSegmentG()')
 parser.add_argument('--embed-dim', type=int, default=40, help='embed dim')
 parser.add_argument('--depth', type=int, default=50, help='the depth of resnet model, only works for cifar dataset')
 parser.add_argument('--network-output', type=str, choices=['logits', 'prob', 'logprob'], default='logits', help='Wether to treat the output of the network as logits, probabilities or log(probabilities) in the constraints.')
 args = parser.parse_args()
-
-torch.manual_seed(42)
-np.random.seed(42)
-
-device = torch.device("cuda" if use_cuda else "cpu")
-kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-pca = None
-
-if args.dataset == 'mnist':
-    mnist_data = datasets.MNIST('../../data/mnist/', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
-
-    train_loader = torch.utils.data.DataLoader(mnist_data, shuffle=True, batch_size=args.batch_size, **kwargs)
-    test_loader = torch.utils.data.DataLoader(datasets.MNIST('../../data/mnist/', train=False, transform=transforms.Compose([
-        transforms.ToTensor()])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-
-    if args.embed:
-        pca = embed_pca(mnist_data, args.embed_dim)
-        model = MLP(args.embed_dim, 10, 1000, 3).to(device)
-    else:
-        model = MnistNet().to(device)
-
-elif args.dataset == 'fashion':
-    fashion_data = datasets.FashionMNIST('../../data/fashionmnist/', train=True, download=True,
-                                         transform=transforms.Compose([transforms.ToTensor()]))
-
-    train_loader = torch.utils.data.DataLoader(fashion_data, shuffle=True, batch_size=args.batch_size, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.FashionMNIST('../../data/fashionmnist/', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-        ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-
-    if args.embed:
-        pca = embed_pca(fashion_data, args.embed_dim)
-        model = MLP(args.embed_dim, 10, 1000, 3).to(device)
-    else:
-        model = MnistNet().to(device)
-elif args.dataset == 'cifar10':
-    transform = transforms.Compose([transforms.ToTensor()])
-
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-    ])  # meanstd transformation
-
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-
-    cifar_data = datasets.CIFAR10('../../data/cifar10', train=True, download=True, transform=transform_train)
-
-    train_loader = torch.utils.data.DataLoader(cifar_data, shuffle=True, batch_size=args.batch_size, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10('../../data/cifar10', train=False, download=True, transform=transform_test),
-        batch_size=256, shuffle=True, **kwargs)
-
-    if args.embed:
-        pca = embed_pca(cifar_data, args.embed_dim)
-        model = MLP(args.embed_dim, 10, 1000, 3).to(device)
-    else:
-        if args.depth == 50:
-            model = ResNet50().to(device)
-        elif args.depth == 34:
-            model = ResNet34().to(device)
-        elif args.depth == 18:
-            model = ResNet18().to(device)
-            
-
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 def RobustnessT(eps1, eps2):
     return lambda model, use_cuda, network_output: RobustnessDatasetConstraint(model, eps1, eps2, use_cuda=use_cuda, network_output=network_output)
@@ -281,50 +211,126 @@ def CSimilarityG(eps, delta):
 def SegmentG(eps, delta):
     return lambda model, use_cuda, network_output: PairLineRobustnessConstraint(model, eps, delta, use_cuda, network_output=network_output)
 
-constraint = eval(args.constraint)(model, use_cuda, network_output=args.network_output)
-oracle = DL2_Oracle(learning_rate=0.01, net=model, constraint=constraint, use_cuda=use_cuda)
+def main():
+    torch.manual_seed(42)
+    np.random.seed(42)
 
-opt_type = 'T' if constraint.n_gvars == 0 else 'G'
-report_dir = os.path.dirname(
-    os.path.join(args.report_dir, '%s/%s/%s' % (opt_type, args.dataset, constraint.name)))
+    device = torch.device("cuda" if use_cuda else "cpu")
+    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    pca = None
 
-if not os.path.exists(report_dir):
-    os.makedirs(report_dir)
+    if args.dataset == 'mnist':
+        mnist_data = datasets.MNIST('../../data/mnist/', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()]))
 
-tstamp = int(time.time())
+        train_loader = torch.utils.data.DataLoader(mnist_data, shuffle=True, batch_size=args.batch_size, **kwargs)
+        test_loader = torch.utils.data.DataLoader(datasets.MNIST('../../data/mnist/', train=False, transform=transforms.Compose([
+            transforms.ToTensor()])),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
 
-exptype = 'baseline' if args.dl2_weight < 1e-7 else 'dl2'
-report_file = os.path.join(report_dir, 'report_%s_%s_%d.json' % (constraint.name, exptype, tstamp))
-data_dict = {
-    'dl2_weight': args.dl2_weight,
-    'pretrained': args.pretrained,
-    'delay': args.delay,
-    'name': constraint.name,
-    'constraint_txt': args.constraint,
-    'constraint_params': constraint.params(),
-    'num_iters': args.num_iters,
-    'train_acc': [],
-    'constr_acc': [],
-    'dl2_loss': [],
-    'ce_loss': [],
-    'p_acc': [],
-    'c_acc': [],
-    'epoch_time': []
-}
+        if args.embed:
+            pca = embed_pca(mnist_data, args.embed_dim)
+            model = MLP(args.embed_dim, 10, 1000, 3).to(device)
+        else:
+            model = MnistNet().to(device)
 
-for epoch in range(1, args.num_epochs + 1):
-    avg_train_acc, avg_constr_acc, avg_dl2_loss, avg_ce_loss, epoch_time = \
-        train(args, oracle, model, device, train_loader, optimizer, epoch, pca)
-    data_dict['train_acc'].append(avg_train_acc)
-    data_dict['constr_acc'].append(avg_constr_acc)
-    data_dict['ce_loss'].append(avg_ce_loss)
-    data_dict['dl2_loss'].append(avg_dl2_loss)
-    data_dict['epoch_time'].append(epoch_time)
+    elif args.dataset == 'fashion':
+        fashion_data = datasets.FashionMNIST('../../data/fashionmnist/', train=True, download=True,
+                                            transform=transforms.Compose([transforms.ToTensor()]))
 
-    p, c = test(args, oracle, model, device, test_loader, pca)
-    data_dict['p_acc'].append(p)
-    data_dict['c_acc'].append(c)
-    print('Epoch Time [s]:', epoch_time)
+        train_loader = torch.utils.data.DataLoader(fashion_data, shuffle=True, batch_size=args.batch_size, **kwargs)
+        test_loader = torch.utils.data.DataLoader(
+            datasets.FashionMNIST('../../data/fashionmnist/', train=False, transform=transforms.Compose([
+                transforms.ToTensor(),
+            ])),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
 
-with open(report_file, 'w') as fou:
-    json.dump(data_dict, fou, indent=4)
+        if args.embed:
+            pca = embed_pca(fashion_data, args.embed_dim)
+            model = MLP(args.embed_dim, 10, 1000, 3).to(device)
+        else:
+            model = MnistNet().to(device)
+    elif args.dataset == 'cifar10':
+        transform = transforms.Compose([transforms.ToTensor()])
+
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ])  # meanstd transformation
+
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+
+    cifar_data = datasets.CIFAR10('../../data/cifar10', train=True, download=True, transform=transform_train)
+
+    train_loader = torch.utils.data.DataLoader(cifar_data, shuffle=True, batch_size=args.batch_size, **kwargs)
+    test_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10('../../data/cifar10', train=False, download=True, transform=transform_test),
+        batch_size=256, shuffle=True, **kwargs)
+
+    if args.embed:
+        pca = embed_pca(cifar_data, args.embed_dim)
+        model = MLP(args.embed_dim, 10, 1000, 3).to(device)
+    else:
+        if args.depth == 50:
+            model = ResNet50().to(device)
+        elif args.depth == 34:
+            model = ResNet34().to(device)
+        elif args.depth == 18:
+            model = ResNet18().to(device)
+            
+
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    constraint = eval(args.constraint)(model, use_cuda, network_output=args.network_output)
+    oracle = DL2_Oracle(learning_rate=0.01, net=model, constraint=constraint, use_cuda=use_cuda)
+
+    opt_type = 'T' if constraint.n_gvars == 0 else 'G'
+    report_dir = os.path.dirname(
+        os.path.join(args.report_dir, '%s/%s/%s' % (opt_type, args.dataset, constraint.name)))
+
+    if not os.path.exists(report_dir):
+        os.makedirs(report_dir)
+
+    tstamp = int(time.time())
+
+    exptype = 'baseline' if args.dl2_weight < 1e-7 else 'dl2'
+    report_file = os.path.join(report_dir, 'report_%s_%s_%d.json' % (constraint.name, exptype, tstamp))
+    data_dict = {
+        'dl2_weight': args.dl2_weight,
+        'pretrained': args.pretrained,
+        'delay': args.delay,
+        'name': constraint.name,
+        'constraint_txt': args.constraint,
+        'constraint_params': constraint.params(),
+        'num_iters': args.num_iters,
+        'train_acc': [],
+        'constr_acc': [],
+        'dl2_loss': [],
+        'ce_loss': [],
+        'p_acc': [],
+        'c_acc': [],
+        'epoch_time': []
+    }
+
+    for epoch in range(1, args.num_epochs + 1):
+        avg_train_acc, avg_constr_acc, avg_dl2_loss, avg_ce_loss, epoch_time = \
+            train(args, oracle, model, device, train_loader, optimizer, epoch, pca)
+        data_dict['train_acc'].append(avg_train_acc)
+        data_dict['constr_acc'].append(avg_constr_acc)
+        data_dict['ce_loss'].append(avg_ce_loss)
+        data_dict['dl2_loss'].append(avg_dl2_loss)
+        data_dict['epoch_time'].append(epoch_time)
+
+        p, c = test(args, oracle, model, device, test_loader, pca)
+        data_dict['p_acc'].append(p)
+        data_dict['c_acc'].append(c)
+        print('Epoch Time [s]:', epoch_time)
+
+    with open(report_file, 'w') as fou:
+        json.dump(data_dict, fou, indent=4)
+
+if __name__ == '__main__':
+    freeze_support()
+    main()
+

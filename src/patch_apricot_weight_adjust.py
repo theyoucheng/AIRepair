@@ -235,7 +235,6 @@ def TrainingModel(model, epoch_num=retrain_epoch_num):
 
     model.eval()
     
-
 # --- actual process --- #
 bestAcc = EvaluateModel(iDLM)
 with torch.no_grad():

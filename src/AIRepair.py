@@ -46,6 +46,7 @@ parser.add_argument('--auto', dest='auto', default=True, type=bool, help='pick t
 parser.add_argument('--additional_param', dest ='additional_param', default = '', type =str, help='if you want to set the parameters manually, add this')
 parser.add_argument('--input_logs', dest= 'input_logs', default = '', type=str, help= 'if you want to check the model, please provide the name of logs')
 parser.add_argument('--saved_path',dest = 'saved_path', default = './',type=str, help='where to store the repaired models')
+parser.add_argument('--testonly', action='store_true', help='Test mode with the saved model')
 
 args = parser.parse_args()
 
@@ -197,12 +198,13 @@ def LastNlines(fname, N):
 
 def check_model_dl2(net_type, dataset, resume_from):
     # python main.py --net_type resnet --dataset cifar100 --resume_from cifar100_baseline_resnet50_semi_dl2_1600
-    cmd = "python check_model_dl2.py --net_type" + net_type + " --dataset " + dataset + " --resume_from " + resume_from + " --testOnly"
+    cmd = "python check_model_dl2.py --pretrained "+ resume_from + " --dataset " + dataset + " --resume_from " + resume_from + " --testOnly"
     with open("checkmodel_dl2_stdout.txt","wb") as out, open("checkmodel_dl2_stderr.txt","wb") as err:
         ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
         while ex.poll() is None:
             line=ex.stdout.readline().decode("utf8")
-            print(line)
+            if line != "":
+                print(line)
         status = ex.wait()
     foundresult = False
     N = 5
@@ -232,19 +234,21 @@ def check_model_dl2(net_type, dataset, resume_from):
                 GroupACC = re.findall("\d+\.\d+", line)
     except:
         print('File not found')
-    print("This model accuracy is: "+ str(ACC_1) + " CACC is: " + str(CACC) + " Group Acc is: " + str(GroupACC))
+    #print("This model accuracy is: "+ str(ACC_1) + " CACC is: " + str(CACC) + " Group Acc is: " + str(GroupACC))
     return ACC_1, CACC, GroupACC
 
 def check_model_deeprepair(net_type, dataset,resume_from, log_name):
     #python patch_repair_confusion_dbr.py --net_type resnet --dataset cifar10 /
     # --pretrained ./cifar10_resnet34_baseline.pt --saved_model ./ --checkmodel
-    cmd = "python patch_repair_confusion_dbr.py --net_type " + net_type + " --dataset " + dataset + " --pretrained " + resume_from \
-        +" --saved_model ./ --checkmodel"
+    cmd = "python check_evaluate_model.py --net_type " + net_type + " --dataset " + dataset + " --pretrained " + resume_from \
+        +" --checkmodel"
+    #print(cmd)
     with open("checkmodel_deeprepair_stdout.txt","wb") as out, open("checkmodel_deeprepair_stderr.txt","wb") as err:
         ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stderr=subprocess.STDOUT,stdin = subprocess.PIPE)
         while ex.poll() is None:
             line=ex.stdout.readline().decode("utf8")
-            print(line)
+            if line != "":
+                print(line)
         status = ex.wait()
     foundresult = False
     result = False
@@ -270,8 +274,9 @@ def check_model_deeprepair(net_type, dataset,resume_from, log_name):
                 confusion_acc = re.findall("^[1-9]\d*\.\d*|0\.\d*[1-9]\d*$", line)
     except:
         print('File not found')
-    print("This model accuracy is: "+ str(acc) + " CACC is: " + str(confusion_acc))
+    #print("This model accuracy is: "+ str(acc) + " CACC is: " + str(confusion_acc))
     return acc, confusion_acc
+
 
 def convert_pth_to_pt(net_type, depth, dataset, input_path, outputpath):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -321,7 +326,8 @@ def repair_using_deeprepair(dataset, net_type, depth, expname, pre_trained, save
             ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
             while ex.poll() is None:
                 line=ex.stdout.readline().decode("utf8")
-                print(line)
+                if line != "":
+                    print(line)
             status = ex.wait()
 
     else:
@@ -332,7 +338,8 @@ def repair_using_deeprepair(dataset, net_type, depth, expname, pre_trained, save
             ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
             while ex.poll() is None:
                 line=ex.stdout.readline().decode("utf8")
-                print(line)
+                if line != "":
+                    print(line)
             status = ex.wait()
 
     #repair_bias_exp_oversampling_mnist_fmnist.py --net_type mnist --dataset mnist --depth 50 --batch_size 256 \
@@ -356,7 +363,8 @@ def repair_using_dl2(dataset, net_type, depth, pre_trained, saved_path, addition
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
         else:
             cmd = "python main.py --batch-size 128 --num-epochs 200 --dl2-weight 0.04 --dataset " + dataset \
@@ -366,7 +374,8 @@ def repair_using_dl2(dataset, net_type, depth, pre_trained, saved_path, addition
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
     elif dataset == 'cifar100':
         os.chdir('.././benchmarks/dl2/training/semisupservised')
@@ -379,7 +388,8 @@ def repair_using_dl2(dataset, net_type, depth, pre_trained, saved_path, addition
             ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
             while ex.poll() is None:
                 line=ex.stdout.readline().decode("utf8")
-                print(line)
+                if line != "":
+                    print(line)
             status = ex.wait()     
 
 
@@ -395,7 +405,8 @@ def repair_using_apricot(dataset, net_type, depth, pre_trained, saved_path):
         ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stderr=subprocess.STDOUT,stdin = subprocess.PIPE)
         while ex.poll() is None:
             line=ex.stdout.readline().decode("utf8")
-            print(line)
+            if line != "":
+                print(line)
         status = ex.wait()
         
 def convert_filename_dl2(pretrained):
@@ -444,11 +455,8 @@ def main():
     if args.all == True:
         print("Now run benchmark using Apricot, DeepRepair and DL2")
         print("Firstly check the model")
-        deeprepair_acc, deeprepair_con_acc = check_model_deeprepair(args.nettype, args.dataset, args.pretrained, "check_by_deeprepair.log")
-        #dl2_acc, dl2_cacc, dl2_group_acc = check_model_dl2(args.dataset, args.nettype, args.pretrained)
         print("check model using deeprepair")
-        #print("The acc of the model is " + str(deeprepair_acc) + ", and the confusion_acc of the model is" + str(deeprepair_con_acc))
-        #print("The acc of the model (check by dl2) is " + str(dl2_acc) + ", and the cacc is " + str(dl2_cacc) + "and the group_acc is " + str(dl2_group_acc))
+        check_model_deeprepair(args.nettype, args.dataset, args.pretrained, "check_by_deeprepair.log")
         print("Then apply repair:")
         print("Firstly run apricot") 
         dataset, nettype, depth = retract_info_from_pretrained(args.pretrained)
@@ -459,6 +467,9 @@ def main():
         print("dl2 finished")
         print("Then run deeprepair")
         repair_using_deeprepair(dataset, nettype, depth, "repair_by_deeprepair",args.pretrained, "./model/repaired_by_deeprepair", args.additional_param)
+    elif args.testonly == True:
+        check_model_dl2(args.nettype, args.dataset, args.pretrained)
+        check_model_deeprepair(args.nettype, args.dataset, args.pretrained, "check_by_deeprepair.log")
     else:
         if args.methods == 'apricot':
             repair_using_apricot(args.dataset, args.nettype, args.depth, args.pretrained, "./model/repaired_by_apricot")

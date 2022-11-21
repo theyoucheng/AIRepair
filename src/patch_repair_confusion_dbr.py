@@ -3,6 +3,7 @@
 # python3 repair_retrain_exp.py --net_type resnet --dataset cifar10 --depth 50 --batch_size 256 --lr 0.1 --expname ResNet50 --epochs 60 --beta 1.0 --cutmix_prob 1.0 --pretrained ./runs/DeepInspect_1/model_best.pth.tar --first 3 --second 5
 
 import argparse
+from multiprocessing import freeze_support
 import os
 import shutil
 import time
@@ -82,7 +83,7 @@ parser.add_argument('--cutmix_prob', default=0, type=float,
                     help='cutmix probability')
 parser.add_argument(
     '--pretrained', default='/set/your/model/path', type=str, metavar='PATH')
-parser.add_argument('--saved_model', required=True, type=str, help='the path and file name to save your repaired models')
+#parser.add_argument('--saved_model', required=True, type=str, help='the path and file name to save your repaired models')
 parser.add_argument('--expid', default="0", type=str, help='experiment id')
 parser.add_argument('--checkmodel', help='Check model accuracy',
     action='store_true')
@@ -923,4 +924,5 @@ def accuracy(output, target, topk=(1,)):
 
 
 if __name__ == '__main__':
+    freeze_support()
     main()

@@ -1,3 +1,4 @@
+from multiprocessing import freeze_support
 import os
 import sys
 import time
@@ -33,23 +34,26 @@ def train_baseline(tool, dataset, nettype, depth, savepath, additional_param):
     if tool =='dl2':
         if additional_param == "":
             cmd = "python patch_dl2_main.py --batch-size 128 --num-epochs 200 --dl2-weight 0 --dataset " + dataset \
-                + "--constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
+                + " --constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
                     + savepath + "train_baseline_bydl2_" + dataset + "_" + nettype + ".pt"
+            print(cmd)
             with open("train_baseline_dl2_stdout.txt","wb") as out, open("train_baseline_dl2_stderr.txt","wb") as err:
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
         else:
             cmd = "python patch_dl2_main.py --batch-size 128 --num-epochs 200 --dl2-weight 0 --dataset " + dataset \
-                + "--constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
+                + " --constraint \"RobustnessT(eps1=13.8, eps2=0.9)\" --report-dir reports" + " --saved_model " \
                     + savepath + "plus_additional_train_baseline_bydl2_" + dataset + "_" + nettype + ".pt" + " " + additional_param
             with open("train_baseline_dl2_stdout_plus_additional_param.txt","wb") as out, open("train_baseline_dl2_stderr_plus_additional_param.txt","wb") as err:
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
     elif tool =='deeprepair':
         if additional_param == "":
@@ -59,7 +63,8 @@ def train_baseline(tool, dataset, nettype, depth, savepath, additional_param):
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
         else:
             cmd = "python train_baseline.py --nettype " + nettype + " --dataset " +dataset + " --depth " + str(depth) + " --expname " +\
@@ -68,7 +73,8 @@ def train_baseline(tool, dataset, nettype, depth, savepath, additional_param):
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
 
     elif tool == 'apricot':
@@ -80,14 +86,16 @@ def train_baseline(tool, dataset, nettype, depth, savepath, additional_param):
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
             cmd = "python rDLM_train.py"
             with open("train_rDLM_apricot_stdout.txt","wb") as out, open("train_rDLM_apricot_stderr.txt","wb") as err:
                 ex=subprocess.Popen(cmd,stdout = subprocess.PIPE,stdin = subprocess.PIPE)
                 while ex.poll() is None:
                     line=ex.stdout.readline().decode("utf8")
-                    print(line)
+                    if line != "":
+                        print(line)
                 status = ex.wait()
             
 def main():
@@ -95,11 +103,12 @@ def main():
         train_baseline("dl2", "cifar10", "resnet", "./pretrained_models/dl2","")
         train_baseline("dl2", "cifar100", "resnet", "./pretrained_models/dl2","")
         train_baseline("dl2", "mnist", "mnist", "./pretrained_models/dl2","")
-        train_baseline("dl2", "fmnisy", "fmnist", "./pretrained_models/dl2","")
+        train_baseline("dl2", "fmnist", "fmnist", "./pretrained_models/dl2","")
         
     else:
         train_baseline(args.tool, args.dataset, args.nettype, args.depth, args.saved_path, args.additional_param)
 if __name__ == '__main__':
+    freeze_support()
     main()
 
 

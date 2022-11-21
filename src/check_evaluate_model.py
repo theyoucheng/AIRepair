@@ -8,9 +8,10 @@ import time
 from torchvision import datasets, transforms
 from models import MLP, MnistNet
 import sys
+from patch_repair_confusion_dbr import get_dataset_from_specific_classes
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../common"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../common/CutMix-PyTorch"))
-import resnet as RN
+import resnet_deeprepair as RN
 from sklearn.decomposition import PCA
 sys.path.append('../../')
 import time
@@ -41,8 +42,12 @@ parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
+parser.add_argument('-b', '--batch_size', default=128, type=int,
+                    metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument(
     '--pretrained', default='/set/your/model/path', type=str, metavar='PATH')
+parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                    help='number of data loading workers (default: 4)')
 parser.add_argument('--checkmodel', help='Check model accuracy',
                     action='store_true')
 parser.add_argument('--first', default=3, type=int,
@@ -55,6 +60,12 @@ parser.add_argument('--no-verbose', dest='verbose', action='store_false',
                     help='to print the status at every iteration')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
+parser.add_argument('--extra', default=10, type=int,
+                    help='extra batch size')
+parser.add_argument('--depth', default=32, type=int,
+                    help='depth of the network (default: 32)')
+parser.add_argument('--no-bottleneck', dest='bottleneck', action='store_false',
+                    help='to use basicblock for CIFAR datasets (default: bottleneck)')
 global_epoch_confusion = []
 
 args = parser.parse_args()
@@ -108,9 +119,9 @@ def main():
             numberofclass = 10
 
             target_train_dataset = datasets.CIFAR10('../data', train=True, download=True, transform=transform_train)
-            target_train_dataset = get_dataset_from_specific_classes(target_train_dataset, args.first, args.second, args.third)
+            target_train_dataset = get_dataset_from_specific_classes(target_train_dataset, args.first, args.second)
             target_test_dataset = datasets.CIFAR10('../data', train=False, download=True, transform=transform_test)
-            target_test_dataset = get_dataset_from_specific_classes(target_test_dataset, args.first, args.second, args.third)
+            target_test_dataset = get_dataset_from_specific_classes(target_test_dataset, args.first, args.second)
             target_train_loader = torch.utils.data.DataLoader(target_train_dataset, batch_size=args.extra, shuffle=True,
                                         num_workers=args.workers, pin_memory=True)
             target_val_loader = torch.utils.data.DataLoader(target_test_dataset, batch_size=args.extra, shuffle=True,
