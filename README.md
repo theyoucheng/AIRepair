@@ -4,7 +4,7 @@ Neural Network Repairing Framework
 
 ## Overview
 
-This framework provides a platform for testing, selecting, and comparing neural network repair tools for pre-trained neural network models. Please check our paper for details: [research paper](link to the paper). The following diagram shows the architecture of our framework.
+This repository contains artefacts that accompany the paper titled AIREPAIR: A Repair Platform for Neural Networks (arXiv preprint). details: [research paper]([link to the paper](https://arxiv.org/pdf/2211.15387.pdf). The following diagram shows the architecture of our framework.
 
 ![AIRepair process diagram](neural_network_repair_arch.png)
 
