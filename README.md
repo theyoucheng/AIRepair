@@ -7,7 +7,7 @@ Neural Network Repairing Framework
 This repository contains artefacts that accompany the paper titled [AIREPAIR: A Repair Platform for Neural Networks
  (arXiv preprint)](https://arxiv.org/pdf/2211.15387.pdf). The following diagram shows the architecture of our framework.
 
-![AIRepair process diagram](neural_network_repair_arch.png)
+![AIRepair process diagram](AIRepair.png)
 
 ## Installation
 
